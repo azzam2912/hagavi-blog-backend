@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	dbSQL  = "postgres"
-	dbUser = "hagavi"
-	dbPass = "heartgatavirus"
-	dbName = "hagavi_blog"
+	dbSQL         = "postgres"
+	dbUser        = "hagavi"
+	dbPass        = "heartgatavirus"
+	dbName        = "hagavi_blog"
 	blogPostTable = "blog_posting"
-	port   = ":8080"
+	port          = ":8080"
 )
 
 func CreateBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
@@ -27,7 +27,8 @@ func CreateBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
-	createdTime := time.Now()
+  	location := time.FixedZone("GMT+7", 7*60*60)
+	createdTime := time.Now().In(location)
 	sqlStatementCreate := fmt.Sprintf(`INSERT INTO %s (title, content, created_at, updated_at, author) VALUES ($1, $2, $3, $4, $5)`, blogPostTable)
 	result, err := db.Exec(sqlStatementCreate, newPost.Title, newPost.Content, createdTime, createdTime, newPost.Author)
 	if err != nil {
@@ -39,7 +40,7 @@ func CreateBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
 			return c.JSON(http.StatusOK, string(newPostJSON))
 		}
 	}
-  	return c.Status(http.StatusInternalServerError).SendString("Failed to create blog post")
+	return c.Status(http.StatusInternalServerError).SendString("Failed to create blog post")
 }
 
 func GetBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
@@ -53,20 +54,19 @@ func GetBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
 	rowResult := db.QueryRow(sqlStatementGet, id)
 
 	err := rowResult.Scan(&post.ID, &post.Title, &post.Content, &post.CreatedAt, &post.UpdatedAt, &post.Author)
-	
-	if(err == nil){
+
+	if err == nil {
 		postJSON, newerr := json.Marshal(post)
-		if(newerr != nil) {
+		if newerr != nil {
 			return c.JSON(http.StatusOK, string(postJSON))
 		}
 	}
-	if(err == sql.ErrNoRows){
+	if err == sql.ErrNoRows {
 		return c.Status(http.StatusNotFound).SendString("Post Not Found")
 	}
 	return c.Status(http.StatusInternalServerError).SendString(err.Error())
-	
-}
 
+}
 
 func UpdateBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
 	id := c.Params("id") // Get id from URL parameter
@@ -75,37 +75,39 @@ func UpdateBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
 	}
 
 	var updatedPost models.BlogPost
-	err := c.BodyParser(&updatedPost) // Use Fiber's BodyParser for JSON decoding
+	err := c.BodyParser(&updatedPost)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
-
-	updatedTime := time.Now()
-	sqlStatementUpdated := fmt.Sprintf(`UPDATE %s SET title=$1, content=$2, created_at=$3, updated_at=$4, author=$5 WHERE id=$6`, blogPostTable)
-	_, err = db.Exec(sqlStatementUpdated, updatedPost.Title, updatedPost.Content, updatedPost.CreatedAt, updatedTime, updatedPost.Author, updatedPost.ID)
+	location := time.FixedZone("GMT+7", 7*60*60)
+	updatedTime := time.Now().In(location)
+	sqlStatementUpdated := fmt.Sprintf(`UPDATE %s SET title=$1, content=$2, updated_at=$3, author=$4 WHERE id=$5`, blogPostTable)
+	result, err := db.Exec(sqlStatementUpdated, updatedPost.Title, updatedPost.Content, updatedTime, updatedPost.Author, id)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
-
-	return c.SendStatus(http.StatusNoContent) // No content to return on successful update
+	if rowsAffected, err := result.RowsAffected(); err == nil && rowsAffected > 0 {
+		return c.SendStatus(http.StatusOK)
+	}
+	return c.Status(http.StatusInternalServerError).SendString("Failed to update blog post")
 }
 
-
 func DeleteBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
-	id := c.Params("id") // Get id from URL parameter
+	id := c.Params("id")
 	if id == "" {
 		return c.Status(http.StatusBadRequest).SendString("Missing Post ID Parameter")
 	}
 
 	sqlStatementDelete := fmt.Sprintf(`DELETE FROM %s WHERE id=$1`, blogPostTable)
-	_, err := db.Exec(sqlStatementDelete, id)
+	result, err := db.Exec(sqlStatementDelete, id)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
-
-	return c.SendStatus(http.StatusAccepted) // Indicate successful deletion
+	if rowsAffected, err := result.RowsAffected(); err == nil && rowsAffected > 0 {
+		return c.SendStatus(http.StatusOK)
+	}
+	return c.Status(http.StatusInternalServerError).SendString("Failed to delete blog post")
 }
-
 
 func GetAllBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
 	sqlStatementGetAll := fmt.Sprintf(`SELECT id, title, content, created_at, updated_at, author FROM %s`, blogPostTable)
@@ -119,16 +121,14 @@ func GetAllBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
 		var post models.BlogPost
 		err := rows.Scan(&post.ID, &post.Title, &post.Content, &post.CreatedAt, &post.UpdatedAt, &post.Author)
 		if err != nil {
-		return c.Status(http.StatusInternalServerError).SendString(err.Error())
+			return c.Status(http.StatusInternalServerError).SendString(err.Error())
 		}
 		blogPosts = append(blogPosts, post)
 	}
 	err = rows.Err()
 	blogPostsJSON, newerr := json.Marshal(blogPosts)
-	if err == nil && newerr != nil  {
+	if err == nil && newerr == nil {
 		return c.JSON(http.StatusOK, string(blogPostsJSON))
 	}
 	return c.Status(http.StatusInternalServerError).SendString(err.Error())
 }
-
-
