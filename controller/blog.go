@@ -57,14 +57,14 @@ func GetBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
 
 	if err == nil {
 		postJSON, newerr := json.Marshal(post)
-		if newerr != nil {
+		if newerr == nil {
 			return c.JSON(http.StatusOK, string(postJSON))
 		}
 	}
 	if err == sql.ErrNoRows {
 		return c.Status(http.StatusNotFound).SendString("Post Not Found")
 	}
-	return c.Status(http.StatusInternalServerError).SendString(err.Error())
+	return c.Status(http.StatusInternalServerError).SendString("Cannot Retrieve Post")
 
 }
 
