@@ -10,10 +10,11 @@ import (
 func Config(key string) string {
 	err := godotenv.Load(".env")
 	if err != nil {
+		log.Println("error loading .env trying to load .env.local")
 		err = godotenv.Load(".env.local")
 	}
 	if err != nil {
-		log.Printf("error loading env")
+		log.Fatal("error loading all env")
 	}
 	return os.Getenv(key)
 }
