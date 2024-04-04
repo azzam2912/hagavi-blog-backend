@@ -27,7 +27,7 @@ func CreateBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
-  	location := time.FixedZone("GMT+7", 7*60*60)
+	location := time.FixedZone("GMT+7", 7*60*60)
 	createdTime := time.Now().In(location)
 	sqlStatementCreate := fmt.Sprintf(`INSERT INTO %s (title, content, created_at, updated_at, author) VALUES ($1, $2, $3, $4, $5)`, blogPostTable)
 	result, err := db.Exec(sqlStatementCreate, newPost.Title, newPost.Content, createdTime, createdTime, newPost.Author)
@@ -56,10 +56,7 @@ func GetBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
 	err := rowResult.Scan(&post.ID, &post.Title, &post.Content, &post.CreatedAt, &post.UpdatedAt, &post.Author)
 
 	if err == nil {
-		postJSON, newerr := json.Marshal(post)
-		if newerr == nil {
-			return c.JSON(http.StatusOK, string(postJSON))
-		}
+		return c.Status(http.StatusOK).JSON(post)
 	}
 	if err == sql.ErrNoRows {
 		return c.Status(http.StatusNotFound).SendString("Post Not Found")
@@ -126,9 +123,8 @@ func GetAllBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
 		blogPosts = append(blogPosts, post)
 	}
 	err = rows.Err()
-	blogPostsJSON, newerr := json.Marshal(blogPosts)
-	if err == nil && newerr == nil {
-		return c.JSON(http.StatusOK, string(blogPostsJSON))
+	if err == nil {
+		return c.Status(http.StatusOK).JSON(blogPosts)
 	}
 	return c.Status(http.StatusInternalServerError).SendString(err.Error())
 }
