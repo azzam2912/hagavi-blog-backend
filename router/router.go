@@ -10,22 +10,22 @@ import (
 func NewConnection(db *sql.DB) *fiber.App {
 	app := fiber.New()
 	app.Use(cors.New())
-	api := app.Group("/api")
-	post := api.Group("/post")
+	apiBlog := app.Group("/api/blog")
+	post := apiBlog.Group("/post")
 	post.Post("/", func(c *fiber.Ctx) error {
-		return contoller.CreateBlogPostHandler(c, db)
+		return controller.CreateBlogPostHandler(c, db)
 	})
 	post.Get("/:id", func(c *fiber.Ctx) error {
-		return contoller.GetBlogPostHandler(c, db)
+		return controller.GetBlogPostHandler(c, db)
 	})
 	post.Get("/", func(c *fiber.Ctx) error {
-		return contoller.GetAllBlogPostHandler(c, db)
+		return controller.GetAllBlogPostHandler(c, db)
 	})
 	post.Put("/:id", func(c *fiber.Ctx) error {
-		return contoller.UpdateBlogPostHandler(c, db)
+		return controller.UpdateBlogPostHandler(c, db)
 	})
 	post.Delete("/:id", func(c *fiber.Ctx) error {
-		return contoller.DeleteBlogPostHandler(c, db)
+		return controller.DeleteBlogPostHandler(c, db)
 	})
 	return app
 }

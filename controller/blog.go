@@ -1,4 +1,4 @@
-package contoller
+package controller
 
 import (
 	"database/sql"
@@ -13,12 +13,7 @@ import (
 )
 
 const (
-	dbSQL         = "postgres"
-	dbUser        = "hagavi"
-	dbPass        = "heartgatavirus"
-	dbName        = "hagavi_blog"
 	blogPostTable = "blog_posting"
-	port          = ":8080"
 )
 
 func CreateBlogPostHandler(c *fiber.Ctx, db *sql.DB) error {
